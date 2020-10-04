@@ -1,1 +1,3 @@
-## Multispeaker Speech Synthesis with Feedback Constraint from speaker verificaiton
+## AISHELL-3 baseline acoustic model
+
+> under construction
