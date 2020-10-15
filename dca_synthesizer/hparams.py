@@ -180,11 +180,20 @@ hparams = HParams(
     # Attention mechanism
     smoothing=False,  # Whether to smooth the attention normalization function
     attention_dim=128,  # dimension of attention space
-    attention_filters=32,  # number of attention convolution filters
-    attention_kernel=(31,),  # kernel size of attention convolution
+    attention_filters=8,  # was 32  # number of attention convolution filters
+    attention_kernel=21,  # was (31,)  # kernel size of attention convolution
     cumulative_weights=True,
     # Whether to cumulate (sum) all previous attention weights or simply feed previous weights (
     # Recommended: True)
+
+    
+    # (shiyao): DCA attention
+    attention_n_taps = 11,
+    prior_alpha = 0.1, #0.5,
+    prior_speed = 1.0,        #3.6,   # measured with a linear-regression on training-data
+
+
+
     
     # Decoder
     prenet_layers=[256, 256],  # number of layers and number of units of prenet
@@ -245,7 +254,7 @@ hparams = HParams(
     # testing). 
     # Training Tacotron with unmasked paddings makes it aware of them, which makes synthesis times
     #  different from training. We thus recommend masking the encoder.
-    tacotron_synthesis_batch_size=16,
+    tacotron_synthesis_batch_size=20,
     # DO NOT MAKE THIS BIGGER THAN 1 IF YOU DIDN"T TRAIN TACOTRON WITH "mask_encoder=True"!!
     tacotron_test_size=0.05,
     # % of data to keep as test data, if None, tacotron_test_batches must be not None. (5% is 

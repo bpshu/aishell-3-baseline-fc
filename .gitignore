@@ -12,3 +12,7 @@ datasets/vctk/synthesizer/audio
 datasets/vctk/synthesizer/embeds
 datasets/vctk/synthesizer/mels
 !.gitignore
+
+tf_multispeaker
+pretrained
+

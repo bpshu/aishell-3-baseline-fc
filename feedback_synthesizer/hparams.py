@@ -4,7 +4,7 @@ from tensorflow.contrib.training import HParams
 hparams = HParams(
     # Comma-separated list of cleaners to run on text prior to training and eval. For non-English
     # text, you may want to use "basic_cleaners" or "transliteration_cleaners".
-    cleaners="english_cleaners",
+    cleaners="basic_cleaners",
     
     # If you only have 1 GPU or want to use only one GPU, please set num_gpus=0 and specify the 
     # GPU idx on run. example:
@@ -162,7 +162,7 @@ hparams = HParams(
     ###########################################################################################################################################
     
     # Tacotron
-    outputs_per_step=2, # Was 1
+    outputs_per_step=1, # Was 1
     # number of frames to generate at each decoding step (increase to speed up computation and 
     # allows for higher batch size, decreases G&L audio quality)
     stop_at_any=True,
@@ -194,7 +194,7 @@ hparams = HParams(
     # Max decoder steps during inference (Just for safety from infinite loop cases)
     
     # Residual postnet
-    postnet_num_layers=5,  # number of postnet convolutional layers
+    postnet_num_layers=3,  # number of postnet convolutional layers
     postnet_kernel_size=(5,),  # size of postnet convolution filters for each layer
     postnet_channels=512,  # number of postnet convolution filters for each layer
     
@@ -245,9 +245,9 @@ hparams = HParams(
     # testing). 
     # Training Tacotron with unmasked paddings makes it aware of them, which makes synthesis times
     #  different from training. We thus recommend masking the encoder.
-    tacotron_synthesis_batch_size=128,
+    tacotron_synthesis_batch_size=16,
     # DO NOT MAKE THIS BIGGER THAN 1 IF YOU DIDN"T TRAIN TACOTRON WITH "mask_encoder=True"!!
-    tacotron_test_size=0.05,
+    tacotron_test_size=0.0005,  # was 0.05
     # % of data to keep as test data, if None, tacotron_test_batches must be not None. (5% is 
 	# enough to have a good idea about overfit)
     tacotron_test_batches=None,  # number of test batches.
@@ -258,7 +258,7 @@ hparams = HParams(
     tacotron_start_decay=2900000,  # Step at which learning decay starts
     tacotron_decay_steps=50000,  # Determines the learning rate decay slope (UNDER TEST)
     tacotron_decay_rate=0.4,  # learning rate decay rate (UNDER TEST)
-    tacotron_initial_learning_rate=1e-3,  # starting learning rate
+    tacotron_initial_learning_rate=1e-5, # was 1e-3, use much smaller learning rate in feedback training to prevent overshooting (grad explosion) # starting learning rate
     tacotron_final_learning_rate=1e-5,  # minimal learning rate
     
     # Optimization parameters

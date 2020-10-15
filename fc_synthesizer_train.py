@@ -16,7 +16,7 @@ def prepare_run(args):
 
 if __name__ == "__main__": 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--name", default='vctk', type=str, help="Name of the run and of the logging directory.")
+    parser.add_argument("--name", default='baseline_acoustic', type=str, help="Name of the run and of the logging directory.")
     parser.add_argument("--synthesizer_root", type=str, help=\
         "Path to the synthesizer training data that contains the audios and the train.txt file. "
         "If you let everything as default, it should be <datasets_root>/SV2TTS/synthesizer/.", default="datasets/vctk/synthesizer/")

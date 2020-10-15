@@ -1,13 +1,13 @@
 import tensorflow as tf
-from feedback_synthesizer.utils.symbols import symbols
-from feedback_synthesizer.infolog import log
-from feedback_synthesizer.models.helpers import TacoTrainingHelper, TacoTestHelper
-from feedback_synthesizer.models.modules import *
+from dca_synthesizer.utils.symbols import symbols
+from dca_synthesizer.infolog import log
+from dca_synthesizer.models.helpers import TacoTrainingHelper, TacoTestHelper
+from dca_synthesizer.models.modules import *
 from tensorflow.contrib.seq2seq import dynamic_decode
-from feedback_synthesizer.models.architecture_wrappers import TacotronEncoderCell, TacotronDecoderCell
-from feedback_synthesizer.models.custom_decoder import CustomDecoder
-from feedback_synthesizer.models.attention import LocationSensitiveAttention
-from feedback_synthesizer.models.embedding.Resnet import ResNet
+from dca_synthesizer.models.architecture_wrappers import TacotronEncoderCell, TacotronDecoderCell
+from dca_synthesizer.models.custom_decoder import CustomDecoder
+from dca_synthesizer.models.attention import LocationSensitiveAttention
+
 import numpy as np
 
 
@@ -25,18 +25,11 @@ class Tacotron():
     """Tacotron-2 Feature prediction Model.
     """
     
-    def __init__(self, hparams, resnet_scope, resnet_hp):
+    def __init__(self, hparams):
         self._hparams = hparams
-        self.resnet_scope = resnet_scope
-        self.resnet = ResNet(resnet_hp, 'eval')
-        self.embed_loss_scale = hparams.embed_loss_scale
-    ''' 
-    def __init__(self, hparams, embed_net):
-        self._hparams = hparams
-        self.resnet = embed_net
-    '''
+    
     def initialize(self, inputs, input_lengths, embed_targets, mel_targets=None, 
-                   stop_token_targets=None, embedding_masks=None, linear_targets=None, targets_lengths=None, gta=False,
+                   stop_token_targets=None, linear_targets=None, targets_lengths=None, gta=False,
                    global_step=None, is_training=False, is_evaluating=False, split_infos=None):
         """
         Initializes the model for inference sets "mel_outputs" and "alignments" fields.
@@ -84,10 +77,7 @@ class Tacotron():
                     targets_lengths is not None else targets_lengths
             
             ### SV2TTS ###
-            p_embedding_masks = tf.py_func(split_func, [embedding_masks, split_infos[:, 3]],
-                                              lout_float) if embedding_masks is not None else \
-				embedding_masks
-                
+            
             tower_embed_targets = tf.split(embed_targets, num_or_size_splits=hp.tacotron_num_gpus,
                                            axis=0)
             
@@ -103,7 +93,6 @@ class Tacotron():
             tower_inputs = []
             tower_mel_targets = []
             tower_stop_token_targets = []
-            tower_embedding_masks = []
             
             batch_size = tf.shape(inputs)[0]
             mel_channels = hp.num_mels
@@ -115,19 +104,13 @@ class Tacotron():
                 if p_stop_token_targets is not None:
                     tower_stop_token_targets.append(
                         tf.reshape(p_stop_token_targets[i], [batch_size, -1]))
-                if p_embedding_masks is not None:
-                    tower_embedding_masks.append(
-                        tf.reshape(p_embedding_masks[i], [batch_size, -1, (hp.num_mels + 7)//8, \
-                                                          hp.speaker_embedding_size // 2]))
         
         self.tower_decoder_output = []
         self.tower_alignments = []
         self.tower_stop_token_prediction = []
         self.tower_mel_outputs = []
-        self.tower_gvectors = []
         
         tower_embedded_inputs = []
-        tower_spkembed_targets = []
         tower_enc_conv_output_shape = []
         tower_encoder_cond_outputs = []
         tower_residual = []
@@ -165,18 +148,18 @@ class Tacotron():
                     enc_conv_output_shape = encoder_cell.conv_output_shape
                     
                     
-                    ### SV2TT2 ###
-                    
-                    # Append the speaker embedding to the encoder output at each timestep
-                    tileable_shape = [-1, 1, self._hparams.speaker_embedding_size]
-
-                    # perform l2 normalize on speaker embeddings to speedup convergence
+                    # (shiyao) : it's said that normalizing here would speed up convergence
                     tower_embed_targets[i] = tf.nn.l2_normalize(
-                        tower_embed_targets[i],
+                        tower_embed_targets[i], 
                         axis = 1,
                         epsilon = 1e-12,
                         name = 'g_vec_normalize'
                     )
+                    
+                    ### SV2TT2 ###
+                    
+                    # Append the speaker embedding to the encoder output at each timestep
+                    tileable_shape = [-1, 1, self._hparams.speaker_embedding_size]
                     tileable_embed_targets = tf.reshape(tower_embed_targets[i], tileable_shape)
                     tiled_embed_targets = tf.tile(tileable_embed_targets, 
                                                        [1, tf.shape(encoder_outputs)[1], 1])
@@ -261,16 +244,6 @@ class Tacotron():
                     
                     # Compute the mel spectrogram
                     mel_outputs = decoder_output + projected_residual
-           
-                    # Compute the embedding
-                    with tf.variable_scope(self.resnet_scope, auxiliary_name_scope=False) as resnet_scope:
-                        with tf.name_scope(resnet_scope.original_name_scope):
-                            if tower_targets_lengths == None:
-                                gvectors = self.resnet(mel_outputs, None)
-                            else:
-                                max_len = tf.reduce_max(tower_targets_lengths[i])
-                                resInput = mel_outputs[:, :max_len, :]
-                                gvectors = self.resnet(resInput, tower_embedding_masks[i])
                     
                     if post_condition:
                         # Add post-processing CBHG. This does a great job at extracting features 
@@ -299,9 +272,6 @@ class Tacotron():
                     self.tower_alignments.append(alignments)
                     self.tower_stop_token_prediction.append(stop_token_prediction)
                     self.tower_mel_outputs.append(mel_outputs)
-                    self.tower_gvectors.append(gvectors)
-                    
-                    tower_spkembed_targets.append(tower_embed_targets[i])
                     tower_embedded_inputs.append(embedded_inputs)
                     tower_enc_conv_output_shape.append(enc_conv_output_shape)
                     tower_encoder_cond_outputs.append(encoder_cond_outputs)
@@ -312,19 +282,17 @@ class Tacotron():
                         self.tower_linear_outputs.append(linear_outputs)
             log("initialisation done {}".format(gpus[i]))
         
-        
         if is_training:
             self.ratio = self.helper._ratio
         self.tower_inputs = tower_inputs
         self.tower_input_lengths = tower_input_lengths
         self.tower_mel_targets = tower_mel_targets
-        self.tower_spkembed_targets = tower_spkembed_targets
         # self.tower_linear_targets = tower_linear_targets
         self.tower_targets_lengths = tower_targets_lengths
         self.tower_stop_token_targets = tower_stop_token_targets
         
-        self.all_vars = [v for v in tf.trainable_variables() if not ("resnet" in v.name)] 
-        print([v for v in tf.trainable_variables() if ("vector" in v.name)])
+        self.all_vars = tf.trainable_variables()
+        
         log("Initialized Tacotron model. Dimensions (? = dynamic shape): ")
         log("  Train mode:               {}".format(is_training))
         log("  Eval mode:                {}".format(is_evaluating))
@@ -346,7 +314,7 @@ class Tacotron():
             
             # 1_000_000 is causing syntax problems for some people?! Python please :)
             log("  Tacotron Parameters       {:.3f} Million.".format(
-                np.sum([np.prod(v.get_shape().as_list()) for v in self.all_vars]) / 1000000.0))
+                np.sum([np.prod(v.get_shape().as_list()) for v in self.all_vars]) / 1000000))
     
     
     def add_loss(self):
@@ -359,14 +327,12 @@ class Tacotron():
         self.tower_regularization_loss = []
         self.tower_linear_loss = []
         self.tower_loss = []
-        self.tower_embedding_loss = []
         
         total_before_loss = 0
         total_after_loss = 0
         total_stop_token_loss = 0
         total_regularization_loss = 0
         total_linear_loss = 0
-        total_embedding_loss = 0
         total_loss = 0
 
         gpus = ["/gpu:{}".format(i) for i in
@@ -390,14 +356,6 @@ class Tacotron():
                             self.tower_stop_token_targets[i],
                             self.tower_stop_token_prediction[i], self.tower_targets_lengths[i],
                             hparams=self._hparams)
-                        
-                        if hp.embed_loss_func == 'cos':
-                            loss_func = tf.keras.losses.CosineSimilarity(axis=-1)
-                            embedding_loss = 1.0 - loss_func( tf.math.l2_normalize(self.tower_spkembed_targets[i], axis=-1), \
-                                                      tf.math.l2_normalize(self.tower_gvectors[i], axis=-1))
-                        if hp.embed_loss_func == 'mse':
-                            embedding_loss = tf.losses.mean_squared_error(labels=self.tower_spkembed_targets[i], 
-                                                                      predictions=self.tower_gvectors[i])
                         # SV2TTS extra L1 loss (disabled for now)
                         # linear_loss = MaskedLinearLoss(self.tower_mel_targets[i],
                         #                                self.tower_decoder_output[i],
@@ -415,14 +373,6 @@ class Tacotron():
                         stop_token_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
                             labels=self.tower_stop_token_targets[i],
                             logits=self.tower_stop_token_prediction[i]))
-                        
-                        if hp.embed_loss_func == 'cos':
-                            loss_func = tf.keras.losses.CosineSimilarity(axis=-1)
-                            embedding_loss = 1.0 - loss_func( tf.math.l2_normalize(self.tower_spkembed_targets[i], axis=-1), \
-                                                      tf.math.l2_normalize(self.tower_gvectors[i], axis=-1))
-                        if hp.embed_loss_func == 'mse':
-                            embedding_loss = tf.losses.mean_squared_error(labels=self.tower_spkembed_targets[i], 
-                                                                      predictions=self.tower_gvectors[i])
                         
                         # SV2TTS extra L1 loss
                         l1 = tf.abs(self.tower_mel_targets[i] - self.tower_decoder_output[i])
@@ -449,9 +399,6 @@ class Tacotron():
                     else:
                         reg_weight = hp.tacotron_reg_weight
                     
-                    ## Compute the embedding loss
-                    
-                    
                     # Regularize variables
                     # Exclude all types of bias, RNN (Bengio et al. On the difficulty of training recurrent neural networks), embeddings and prediction projection layers.
                     # Note that we consider attention mechanism v_a weights as a prediction projection layer and we don"t regularize it. (This gave better stability)
@@ -464,12 +411,10 @@ class Tacotron():
                     self.tower_before_loss.append(before)
                     self.tower_after_loss.append(after)
                     self.tower_stop_token_loss.append(stop_token_loss)
-                    self.tower_embedding_loss.append(embedding_loss)
                     self.tower_regularization_loss.append(regularization)
                     self.tower_linear_loss.append(linear_loss)
                     
                     loss = before + after + stop_token_loss + regularization + linear_loss
-                    loss = loss + self.embed_loss_scale * embedding_loss
                     self.tower_loss.append(loss)
         
         for i in range(hp.tacotron_num_gpus):
@@ -478,13 +423,11 @@ class Tacotron():
             total_stop_token_loss += self.tower_stop_token_loss[i]
             total_regularization_loss += self.tower_regularization_loss[i]
             total_linear_loss += self.tower_linear_loss[i]
-            total_embedding_loss += self.tower_embedding_loss[i]
             total_loss += self.tower_loss[i]
         
         self.before_loss = total_before_loss / hp.tacotron_num_gpus
         self.after_loss = total_after_loss / hp.tacotron_num_gpus
         self.stop_token_loss = total_stop_token_loss / hp.tacotron_num_gpus
-        self.embedding_loss = total_embedding_loss / hp.tacotron_num_gpus
         self.regularization_loss = total_regularization_loss / hp.tacotron_num_gpus
         self.linear_loss = total_linear_loss / hp.tacotron_num_gpus
         self.loss = total_loss / hp.tacotron_num_gpus
@@ -542,8 +485,6 @@ class Tacotron():
                 grad = tf.reduce_mean(grad, 0)
                 
                 v = grad_and_vars[0][1]
-                if "resnet" in v.name:
-                    continue
                 avg_grads.append(grad)
                 vars.append(v)
             
@@ -551,7 +492,7 @@ class Tacotron():
             # Just for causion
             # https://github.com/Rayhane-mamah/Tacotron-2/issues/11
             if hp.tacotron_clip_gradients:
-                clipped_gradients, _ = tf.clip_by_global_norm(avg_grads, 30.)  # __mark 0.5 refer
+                clipped_gradients, _ = tf.clip_by_global_norm(avg_grads, 2.)  # __mark 0.5 refer
             else:
                 clipped_gradients = avg_grads
             

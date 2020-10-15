@@ -152,6 +152,15 @@ class Tacotron():
                     
                     # Append the speaker embedding to the encoder output at each timestep
                     tileable_shape = [-1, 1, self._hparams.speaker_embedding_size]
+                    
+                    # perform l2 normalize on speaker embeddings to speedup convergence
+                    tower_embed_targets[i] = tf.nn.l2_normalize(
+                        tower_embed_targets[i],
+                        axis = 1,
+                        epsilon = 1e-12,
+                        name = 'g_vec_normalize'
+                    )
+                    
                     tileable_embed_targets = tf.reshape(tower_embed_targets[i], tileable_shape)
                     tiled_embed_targets = tf.tile(tileable_embed_targets, 
                                                        [1, tf.shape(encoder_outputs)[1], 1])
