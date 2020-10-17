@@ -7,12 +7,15 @@ deep_speaker/data_vox12/vox12_train_aug.csv
 deep_speaker/vox12_resnet34
 deep_speaker/log
 deep_speaker/database
-datasets/vctk/wavs
-datasets/vctk/synthesizer/audio
-datasets/vctk/synthesizer/embeds
-datasets/vctk/synthesizer/mels
+datasets/aishell3/wavs
+datasets/aishell3/synthesizer/audio
+datasets/aishell3/synthesizer/embeds
+datasets/aishell3/synthesizer/mels
 !.gitignore
 
 tf_multispeaker
 pretrained
+.ipynb_checkpoints
+
+/**/__pycache__
 

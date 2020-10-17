@@ -8,7 +8,9 @@ _id_to_symbol = {i: s for i, s in enumerate(symbols)}
 
 # Regular expression matching text enclosed in curly braces:
 _curly_re = re.compile(r"(.*?)\{(.+?)\}(.*)")
-
+tone_re = re.compile(r'([0-9]+)')
+phone_re = re.compile(r'([^0-9]+)')
+lg_tokens_ids = [0, 1, 2]
 
 def text_to_sequence(text, cleaner_names):
   """Converts a string of text to a sequence of IDs corresponding to the symbols in the text.
@@ -23,13 +25,19 @@ def text_to_sequence(text, cleaner_names):
     Returns:
       List of integers corresponding to the symbols in the text
   """
-  sequence = []
 
+  lg_seq = ' '.join(['1'] * len(text.split()))
+
+  assert len(text.split()) == len(lg_seq.split()) 
+  sequence = []
+  language_tokens = []
   # Check for curly braces and treat their contents as ARPAbet:
   while len(text):
     m = _curly_re.match(text)
     if not m:
-      sequence += _symbols_to_sequence(_clean_text(text, cleaner_names))
+      text_seq, language_seq = _symbols_to_sequence(_clean_text(text, cleaner_names), lg_seq)
+      sequence += text_seq
+      language_tokens += language_seq
       break
     sequence += _symbols_to_sequence(_clean_text(m.group(1), cleaner_names))
     sequence += _arpabet_to_sequence(m.group(2))
@@ -37,6 +45,7 @@ def text_to_sequence(text, cleaner_names):
 
   # Append EOS token
   sequence.append(_symbol_to_id["~"])
+  language_tokens.append(2)
   return sequence
 
 
@@ -62,8 +71,36 @@ def _clean_text(text, cleaner_names):
   return text
 
 
-def _symbols_to_sequence(symbols):
-  return [_symbol_to_id[s] for s in symbols if _should_keep_symbol(s)]
+def _symbols_to_sequence(symbols, lg_seq):
+  sequence = []
+  lg_sequence = []
+  lg_tokens = lg_seq.split()
+  phone_tokens = symbols.split()
+  for i in range(len(phone_tokens)):
+    sym = phone_tokens[i]
+    if len(tone_re.findall(sym)) > 0:
+      phone = phone_re.findall(sym)[0]
+      tone = tone_re.findall(sym)[0]
+      if phone not in _symbol_to_id.keys():
+        continue
+      sequence.append(_symbol_to_id[phone])
+      sequence.append(_symbol_to_id[tone])
+      lgt = int(lg_tokens[i])
+      assert lgt in lg_tokens_ids
+      lg_sequence.append(lgt)
+      lg_sequence.append(lgt)
+    else:
+      if sym not in _symbol_to_id.keys():
+        continue
+      sequence.append(_symbol_to_id[sym])
+      lgt = int(lg_tokens[i])
+      assert lgt in lg_tokens_ids
+      lg_sequence.append(lgt)
+    sequence.append(_symbol_to_id[' ']) 
+    lg_sequence.append(2)
+        
+  assert len(sequence) == len(lg_sequence)
+  return sequence[:-1], lg_sequence[:-1]
 
 
 def _arpabet_to_sequence(text):
@@ -72,3 +109,4 @@ def _arpabet_to_sequence(text):
 
 def _should_keep_symbol(s):
   return s in _symbol_to_id and s not in ("_", "~")
+
