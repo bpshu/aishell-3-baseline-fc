@@ -7,10 +7,12 @@ deep_speaker/data_vox12/vox12_train_aug.csv
 deep_speaker/vox12_resnet34
 deep_speaker/log
 deep_speaker/database
-datasets/aishell3/wavs
-datasets/aishell3/synthesizer/audio
-datasets/aishell3/synthesizer/embeds
-datasets/aishell3/synthesizer/mels
+datasets/*/wavs
+datasets/*/audio
+datasets/*/embeds
+datasets/*/mels
+datasets/*/mels_vad/
+datasets/*/train.txt
 !.gitignore
 
 tf_multispeaker

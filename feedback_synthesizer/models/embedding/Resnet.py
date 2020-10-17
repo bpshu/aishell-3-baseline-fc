@@ -40,9 +40,9 @@ class ResNetHParams(namedtuple('ResNetHParams',
         return super(ResNetHParams, self)._replace(**kwargs)
 
 resnet_hparams = ResNetHParams(
-    num_classes = 7323,
+    num_classes = 1572,
     min_lrn_rate = 1e-4,
-    lrn_rate = 4e-3,
+    lrn_rate = 0.01,
     decay_learning_rate = True,
     start_decay = 147500,
     decay_steps = 30000,
@@ -56,7 +56,7 @@ resnet_hparams = ResNetHParams(
     clip_gradients = False,
     gv_dim = 256,
     dropout_rate = 0.5,
-    num_gpus = 0
+    num_gpus = 1        ## (shiyao) : was variable `num_gpus`
 )
 
 

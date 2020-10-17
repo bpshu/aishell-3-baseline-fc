@@ -13,7 +13,7 @@ from typing import Sequence, Tuple, List
 
 ## (shiyao) TODO : adjust these imports
 from feedback_synthesizer.hparams import hparams
-from yyg_g_vector.resnet import ResNet
+from deep_speaker.resnet import ResNet
 from feedback_synthesizer.models.embedding.Resnet import resnet_hparams
 
 trainline = namedtuple(
