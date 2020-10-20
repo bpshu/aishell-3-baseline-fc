@@ -33,7 +33,7 @@ $ conda env create -f environment.yaml
 This will create a new conda env named `aishell3`.
 
 ### 1. Synthesis with pre-trained model
-1. Download the pre-trained checkpoints in this repository's [release page](TODO:attach release page); (checkpoints for a pretrained acoustic model and speaker encoder is provided here. For the pretrained WaveRNN model used in the synthesis demo(`syn.ipynb`), please see [this repo](TODO:attach czx's repo) for information.)
+1. Download the pre-trained checkpoints in this repository's [release page](https://github.com/sos1sos2Sixteen/aishell-3-baseline-fc/releases/tag/first_release); (checkpoints for a pretrained acoustic model and speaker encoder is provided here. For the pretrained WaveRNN model used in the synthesis demo(`debug_syn.ipynb`), please see [this repo](https://github.com/caizexin/tf_multispeakerTTS_fc) for information.)
 
 2. use syn.ipynb to load and inference the model
 
