@@ -21,7 +21,7 @@ The speaker encoder network used in `feedback_synthesizer` is listed under `deep
 
 ## Usage
 > replace `<name>` in the following code blocks with appropriate values.
-> detailed usage of jupyter notebooks is described in the notebooks’ markdown blocks.
+> detailed usage of jupyter notebooks is described in the notebooks’ markdown blocks and comment sections.
 
 ### 0. Environment Setup
 We use anaconda to manage our virtual environment. An exported conda env discription file is provided as `environment.yaml`. Use `conda` to create a new virtual environment in order to run the following scripts and notebooks: 
@@ -35,7 +35,7 @@ This will create a new conda env named `aishell3`.
 ### 1. Synthesis with pre-trained model
 1. Download the pre-trained checkpoints in this repository's [release page](https://github.com/sos1sos2Sixteen/aishell-3-baseline-fc/releases/tag/first_release); (checkpoints for a pretrained acoustic model and speaker encoder is provided here. For the pretrained WaveRNN model used in the synthesis demo(`debug_syn.ipynb`), please see [this repo](https://github.com/caizexin/tf_multispeakerTTS_fc) for information.)
 
-2. use syn.ipynb to load and inference the model
+2. use debug_syn.ipynb to load and inference the model
 
 ### 2. Train Speaker Encoder model
 ```
