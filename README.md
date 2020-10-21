@@ -13,11 +13,16 @@ Audio samples could be found [here](https://sos1sos2Sixteen.github.io/aishell3/i
 The speaker encoder network used in `feedback_synthesizer` is listed under `deep_speaker`.
 
 ### Scripts & Notebooks
-* `process_audio.ipynb` is an offline audio feature extraction script, which is used to build the `datasets` sub-directories.
+* `process_audio.ipynb` is an off-line audio feature extraction script, which is used to build the `datasets` sub-directories.
 * `synthesizer_train.py` & `fc_synthesizer_train.py`. We employs a two step strategy in training the baseline acoustic model: first we train a constraint-free model using `synthesizer_train.py`, then fine-tune the pre-trained model under feedback constraint using the same hyper-parameters with `fc_synthesizer_train.py`.
 * `gvector_extraction.py` is used to batch inference speaker embeddings from Mel-spectrograms.
 * `debug_syn.ipynb` shows the acoustic feature synthesis procedures using trained models.
 * `vad.ipynb` & `longer_sentences.ipynb` are used to produce augmented training samples. `vad.ipynb` is used to trim initial silence segments from the mel-spectrograms using a naive energy based VAD approach. `longer_sentences.ipynb` produces longer training sentences by concatenating existing samples.
+
+### Datasets
+the `datasets` directory is intended to host training dataset data, one sub-directory for each separate dataset used in the experiment. But this intention was **not** hard-coded into the scripts, so feel free to do whatever you want, so long as the `dataset-directory` provided to the train scripts fullfills the requirements listed in the following usage notes.
+
+A skeleton(incomplete) dataset directory is provided in the prject(`datasets/aishell3`). We provide in this directory the preprocessed train-set texts(with phoneme and prosodic labels) and averaged speaker embeddings as `metadata.csv` and `mean_embeddings` respectively.
 
 ## Usage
 > replace `<name>` in the following code blocks with appropriate values.
