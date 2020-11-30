@@ -3,6 +3,7 @@
 AISHELL-3 is a multi-speaker Mandarin Chinese audio corpus, this repository is the acoustic model for the multi-speaker TTS baseline system described in *AISHELL-3: A Multispeaker Mandarin Chinese TTS corpus* ([arXiv:2010.11567 [cs.SD]](https://arxiv.org/abs/2010.11567)).
 
 Audio samples could be found [here](https://sos1sos2Sixteen.github.io/aishell3/index.html).
+Dataset link on OpenSLR : [openslr/93](http://www.openslr.org/93/)
 
 ## Project Structure
 ### Model structure
